@@ -1,0 +1,13 @@
+{
+  "id": "{39096B1E-F9DE-43CD-B8B6-B1A1AFC184F8}",
+  "name": "Iiyama Display Configurator",
+  "type": 4,
+  "vendor": "iiyama",
+  "aliases": [
+    "Iiyama Display Discovery"
+  ],
+  "parentRequirements": [],
+  "childRequirements": [],
+  "implemented": [],
+  "prefix": "IIYAMA"
+}

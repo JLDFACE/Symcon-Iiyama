@@ -1,0 +1,72 @@
+{
+  "elements": [
+    {
+      "type": "ExpansionPanel",
+      "caption": "Automatische Erkennung (Scan)",
+      "items": [
+        {
+          "type": "ValidationTextBox",
+          "name": "ScanSubnet",
+          "caption": "Scan Subnetz (CIDR, z. B. 192.168.1.0/24)"
+        },
+        {
+          "type": "NumberSpinner",
+          "name": "Port",
+          "caption": "Port",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        {
+          "type": "NumberSpinner",
+          "name": "Timeout",
+          "caption": "Timeout (ms)",
+          "minimum": 100,
+          "maximum": 5000
+        }
+      ]
+    },
+    {
+      "type": "ExpansionPanel",
+      "caption": "Manuelles Hinzufuegen",
+      "items": [
+        {
+          "type": "ValidationTextBox",
+          "name": "ManualIP",
+          "caption": "IP-Adresse (z. B. 192.168.1.100)"
+        },
+        {
+          "type": "NumberSpinner",
+          "name": "ManualPort",
+          "caption": "Port",
+          "minimum": 1,
+          "maximum": 65535
+        }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "type": "Button",
+      "caption": "Scan starten",
+      "onClick": "IIYAMA_Scan($id);"
+    },
+    {
+      "type": "Button",
+      "caption": "Manuell hinzufuegen",
+      "onClick": "IIYAMA_AddManual($id);"
+    },
+    {
+      "type": "Configurator",
+      "name": "DeviceList",
+      "caption": "Gefundene Iiyama Displays",
+      "delete": true,
+      "columns": [
+        { "label": "IP", "name": "IP", "width": "140px" },
+        { "label": "Model", "name": "Model", "width": "160px" },
+        { "label": "Firmware", "name": "Firmware", "width": "120px" },
+        { "label": "Port", "name": "Port", "width": "80px" }
+      ],
+      "values": []
+    }
+  ]
+}
