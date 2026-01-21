@@ -32,6 +32,8 @@ class IiyamaDisplayLAN extends IPSModule
     private $BufFastUntil = 'FastUntil';
     private $BufPowerOnAt = 'PowerOnAt';
     private $BufInputDelayUntil = 'InputDelayUntil';
+    private $BufLastPowerRetry = 'LastPowerRetry';
+    private $BufLastWOL = 'LastWOL';
 
     public function Create()
     {
@@ -49,6 +51,12 @@ class IiyamaDisplayLAN extends IPSModule
         $this->RegisterPropertyInteger('FastAfterChange', 30);
         $this->RegisterPropertyInteger('InputDelayAfterPowerOn', 8000);
 
+        // Wake-on-LAN
+        $this->RegisterPropertyBoolean('UseWOL', false);
+        $this->RegisterPropertyString('WolMAC', '');
+        $this->RegisterPropertyString('WolBroadcast', '255.255.255.255');
+        $this->RegisterPropertyInteger('WolPort', 9);
+
         $this->RegisterTimer('PollTimer', 0, 'IIYAMA_Poll($_IPS[\'TARGET\']);');
 
         // Buffers init
@@ -61,6 +69,8 @@ class IiyamaDisplayLAN extends IPSModule
         $this->SetBuffer($this->BufFastUntil, '0');
         $this->SetBuffer($this->BufPowerOnAt, '0');
         $this->SetBuffer($this->BufInputDelayUntil, '0');
+        $this->SetBuffer($this->BufLastPowerRetry, '0');
+        $this->SetBuffer($this->BufLastWOL, '0');
     }
 
     public function ApplyChanges()
@@ -127,6 +137,9 @@ class IiyamaDisplayLAN extends IPSModule
 
             $prevPower = $this->GetValueSafe($this->IdentPower);
             $this->UpdatePowerVarFromPoll($power);
+
+            // If power-on pending and device is online, try to apply it
+            $this->TryApplyPendingPower($power);
 
             // Detect Off->On transition
             if ($prevPower === false) {
@@ -212,12 +225,26 @@ class IiyamaDisplayLAN extends IPSModule
         $this->SetPending($this->BufPendingPower, $this->BufPendingUntilPower, (string)$target, 20);
         $this->SetValueIfChanged($this->IdentPower, $target);
 
+        if ($target == 1 && $this->ReadPropertyBoolean('UseWOL')) {
+            $online = $this->GetValueSafe($this->IdentOnline);
+            if ($online === false || !$online) {
+                $this->SendWOL();
+                $this->EnterFastPoll($this->ReadPropertyInteger('FastAfterChange'));
+                $this->Unlock('Action');
+                $this->UpdatePollTimer();
+                return true;
+            }
+        }
+
         // Protocol: Power Set uses cmd 0x18; data1: 0x01=Off, 0x02=On
         $data1 = ($target == 1) ? 0x02 : 0x01;
         $ok = $this->SendSetCommand(0x18, array($data1));
 
         if ($ok) {
             $this->EnterFastPoll($this->ReadPropertyInteger('FastAfterChange'));
+        } elseif ($target == 1 && $this->ReadPropertyBoolean('UseWOL')) {
+            $this->SendWOL();
+            $this->EnterFastPoll(20);
         } else {
             // keep pending; poll will reconcile / timeout
             $this->EnterFastPoll(20);
@@ -656,6 +683,26 @@ class IiyamaDisplayLAN extends IPSModule
         $this->SetValueIfChanged($this->IdentPower, (int)$powerOn);
     }
 
+    private function TryApplyPendingPower($powerOn)
+    {
+        $pending = $this->GetBuffer($this->BufPendingPower);
+        $pendingUntil = (int)$this->GetBuffer($this->BufPendingUntilPower);
+        if ($pending === '' || $this->Now() > $pendingUntil) return;
+
+        $target = (int)$pending;
+        if ($target == (int)$powerOn) return;
+        if ($target != 1) return;
+
+        $lastRetry = (int)$this->GetBuffer($this->BufLastPowerRetry);
+        if (($this->Now() - $lastRetry) < 5) return;
+        $this->SetBuffer($this->BufLastPowerRetry, (string)$this->Now());
+
+        $ok = $this->SendSetCommand(0x18, array(0x02));
+        if ($ok) {
+            $this->EnterFastPoll($this->ReadPropertyInteger('FastAfterChange'));
+        }
+    }
+
     private function UpdateInputVarFromPoll($inputEnum)
     {
         $pending = $this->GetBuffer($this->BufPendingInput);
@@ -967,5 +1014,53 @@ class IiyamaDisplayLAN extends IPSModule
     private function UpdateForm()
     {
         // nothing dynamic for now; keep hook for later
+    }
+
+    // -------------------------
+    // Wake-on-LAN
+    // -------------------------
+
+    private function SendWOL()
+    {
+        $mac = trim($this->ReadPropertyString('WolMAC'));
+        if ($mac === '') return false;
+
+        $hex = preg_replace('/[^0-9A-Fa-f]/', '', $mac);
+        if (strlen($hex) != 12) {
+            $this->SetLastError('WOL: invalid MAC');
+            return false;
+        }
+
+        $last = (int)$this->GetBuffer($this->BufLastWOL);
+        if (($this->Now() - $last) < 5) {
+            return true;
+        }
+        $this->SetBuffer($this->BufLastWOL, (string)$this->Now());
+
+        $broadcast = trim($this->ReadPropertyString('WolBroadcast'));
+        if ($broadcast === '') $broadcast = '255.255.255.255';
+
+        $port = (int)$this->ReadPropertyInteger('WolPort');
+        if ($port < 1 || $port > 65535) $port = 9;
+
+        $packet = str_repeat(chr(0xFF), 6) . str_repeat(pack('H12', $hex), 16);
+
+        $errno = 0;
+        $errstr = '';
+        $sock = @stream_socket_client('udp://' . $broadcast . ':' . $port, $errno, $errstr, 1);
+        if (!$sock) {
+            $this->SetLastError('WOL failed: ' . $errstr);
+            return false;
+        }
+
+        $sockRes = @socket_import_stream($sock);
+        if ($sockRes) {
+            @socket_set_option($sockRes, SOL_SOCKET, SO_BROADCAST, 1);
+        }
+
+        $sent = @fwrite($sock, $packet);
+        @fclose($sock);
+
+        return ($sent !== false);
     }
 }
