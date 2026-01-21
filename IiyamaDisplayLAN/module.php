@@ -34,6 +34,7 @@ class IiyamaDisplayLAN extends IPSModule
     private $BufInputDelayUntil = 'InputDelayUntil';
     private $BufLastPowerRetry = 'LastPowerRetry';
     private $BufLastWOL = 'LastWOL';
+    private $BufAutoNamed = 'AutoNamed';
 
     public function Create()
     {
@@ -50,6 +51,7 @@ class IiyamaDisplayLAN extends IPSModule
         $this->RegisterPropertyInteger('PollFast', 2);
         $this->RegisterPropertyInteger('FastAfterChange', 30);
         $this->RegisterPropertyInteger('InputDelayAfterPowerOn', 8000);
+        $this->RegisterPropertyBoolean('AutoName', true);
 
         // Wake-on-LAN
         $this->RegisterPropertyBoolean('UseWOL', false);
@@ -71,6 +73,7 @@ class IiyamaDisplayLAN extends IPSModule
         $this->SetBuffer($this->BufInputDelayUntil, '0');
         $this->SetBuffer($this->BufLastPowerRetry, '0');
         $this->SetBuffer($this->BufLastWOL, '0');
+        $this->SetBuffer($this->BufAutoNamed, '0');
     }
 
     public function ApplyChanges()
@@ -182,6 +185,7 @@ class IiyamaDisplayLAN extends IPSModule
                 $model = $this->GetLabel(1);
                 if ($model !== false) {
                     $this->SetValueIfChanged($this->IdentModelName, $model);
+                    $this->MaybeAutoName($model);
                 }
 
                 $fw = $this->GetLabel(0);
@@ -1014,6 +1018,29 @@ class IiyamaDisplayLAN extends IPSModule
     private function UpdateForm()
     {
         // nothing dynamic for now; keep hook for later
+    }
+
+    private function MaybeAutoName($model)
+    {
+        if (!$this->ReadPropertyBoolean('AutoName')) return;
+
+        $m = trim((string)$model);
+        if ($m === '') return;
+
+        $done = (int)$this->GetBuffer($this->BufAutoNamed);
+        if ($done > 0) return;
+
+        $current = (string)IPS_GetName($this->InstanceID);
+        $defaults = array(
+            'Iiyama Display LAN',
+            'Iiyama Display (LAN)',
+            'Iiyama Display (LAN/RS232)'
+        );
+
+        if ($current === '' || in_array($current, $defaults)) {
+            IPS_SetName($this->InstanceID, $m);
+            $this->SetBuffer($this->BufAutoNamed, '1');
+        }
     }
 
     // -------------------------

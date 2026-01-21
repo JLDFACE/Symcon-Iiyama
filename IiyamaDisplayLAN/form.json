@@ -59,6 +59,11 @@
       "maximum": 60000
     },
     {
+      "type": "CheckBox",
+      "name": "AutoName",
+      "caption": "Instanz automatisch nach Modell benennen"
+    },
+    {
       "type": "Label",
       "caption": "Wake-on-LAN (optional)"
     },
