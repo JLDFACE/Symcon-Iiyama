@@ -10,7 +10,7 @@
  * - Robustheit: Online/LastError, Semaphore-Lock ohne Fatal.
  */
 
-class IIYAMA_IiyamaDisplayLAN extends IPSModule
+class IiyamaDisplayLAN extends IPSModule
 {
     // Variable Idents
     private $IdentPower = 'Power';

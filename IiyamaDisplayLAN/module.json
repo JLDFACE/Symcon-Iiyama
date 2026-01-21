@@ -1,10 +1,11 @@
 {
   "id": "{F10FBBAA-0FAF-4039-AFE6-962F7A172213}",
-  "name": "Iiyama Display (LAN/RS232)",
+  "name": "Iiyama Display LAN",
   "type": 3,
   "vendor": "iiyama",
   "aliases": [
-    "Iiyama Display (LAN)"
+    "Iiyama Display (LAN)",
+    "Iiyama Display (LAN/RS232)"
   ],
   "parentRequirements": [],
   "childRequirements": [],
