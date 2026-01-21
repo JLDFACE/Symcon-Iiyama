@@ -39,7 +39,8 @@ Getestete Zielausstattung (Konfiguration/Mappings): **ProLite LE9864UHS-B1AG** (
 | Poll (Fast) | Fast-Polling in Sekunden (Transitions/Pending) | 2 |
 | FastAfterChange | nach Statusänderung für X Sekunden Fast-Poll | 30 |
 | InputDelayAfterPowerOn | Delay (ms) für Input-Set nach echtem Power-On | 8000 |
-| AutoName | Instanz automatisch nach Modell benennen | true |
+| AutoName | Instanz automatisch benennen | true |
+| AutoNameValue | Eigener Geraetename (optional) | - |
 | UseWOL | Wake-on-LAN fuer Power-On nutzen | false |
 | WolMAC | MAC-Adresse fuer WOL | - |
 | WolBroadcast | Broadcast/IP fuer WOL | 255.255.255.255 |

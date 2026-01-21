@@ -64,6 +64,11 @@
       "caption": "Instanz automatisch nach Modell benennen"
     },
     {
+      "type": "ValidationTextBox",
+      "name": "AutoNameValue",
+      "caption": "Eigener Geraetename (optional)"
+    },
+    {
       "type": "Label",
       "caption": "Wake-on-LAN (optional)"
     },
