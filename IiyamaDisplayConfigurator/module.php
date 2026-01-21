@@ -39,6 +39,31 @@ class IiyamaDisplayConfigurator extends IPSModule
             }
         }
 
+        $configured = trim($this->ReadPropertyString('ScanSubnet'));
+        $auto = $this->DetectLocalSubnet();
+        $useAuto = false;
+        if ($configured === '' || !$this->IsValidCIDR($configured)) {
+            $useAuto = true;
+        } elseif ($configured === '192.168.1.0/24' && $auto !== '' && $auto !== $configured) {
+            $useAuto = true;
+        }
+        $effectiveSubnet = $useAuto ? $auto : $configured;
+        if ($effectiveSubnet !== '' && isset($form['elements']) && is_array($form['elements'])) {
+            for ($i = 0; $i < count($form['elements']); $i++) {
+                if (isset($form['elements'][$i]['name']) && $form['elements'][$i]['name'] == 'ScanSubnet') {
+                    $form['elements'][$i]['value'] = $effectiveSubnet;
+                    continue;
+                }
+                if (isset($form['elements'][$i]['items']) && is_array($form['elements'][$i]['items'])) {
+                    for ($j = 0; $j < count($form['elements'][$i]['items']); $j++) {
+                        if (isset($form['elements'][$i]['items'][$j]['name']) && $form['elements'][$i]['items'][$j]['name'] == 'ScanSubnet') {
+                            $form['elements'][$i]['items'][$j]['value'] = $effectiveSubnet;
+                        }
+                    }
+                }
+            }
+        }
+
         return json_encode($form);
     }
 
